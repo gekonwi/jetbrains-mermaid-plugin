@@ -142,11 +142,29 @@ Nereid supports **all 20+ Mermaid diagram types**, including:
 
 ## 🔧 Building from Source
 
+### Prerequisites
+- JDK 17 or later
+- npm (for downloading Mermaid.js dependency)
+
+### Build Process
+
+The build system automatically downloads Mermaid.js before building:
+
 ```bash
 ./gradlew buildPlugin
 ```
 
 The plugin ZIP will be generated in `build/distributions/`.
+
+**Note**: The `mermaid.min.js` file (11.12.2) is downloaded at build time via npm and is **not stored in Git**. This reduces repository size and follows modern dependency management practices.
+
+### Manual Dependency Download
+
+If you need to download Mermaid.js separately:
+
+```bash
+./gradlew downloadMermaid
+```
 
 ### Running Tests
 

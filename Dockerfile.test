@@ -1,0 +1,55 @@
+FROM eclipse-temurin:17-jdk
+
+# Install required packages
+# Note: Ubuntu 24.04 (Noble) uses t64 package names for time64 migration
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    xvfb \
+    libgtk-3-0t64 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
+    libnss3 \
+    libasound2t64 \
+    libatk-bridge2.0-0t64 \
+    libatk1.0-0t64 \
+    libcups2 \
+    libdrm2 \
+    libgbm1 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up virtual display for headless testing
+ENV DISPLAY=:99
+
+# Create workspace directory
+WORKDIR /workspace
+
+# Copy gradle wrapper and build files
+COPY gradlew gradlew.bat ./
+COPY gradle ./gradle
+COPY build.gradle.kts settings.gradle.kts gradle.properties ./
+
+# Download Mermaid.js dependency (downloads to build/downloaded-resources)
+RUN ./gradlew downloadMermaid --no-daemon || true
+
+# Download other dependencies (cached layer)
+RUN ./gradlew dependencies --no-daemon || true
+
+# Copy source code
+COPY src ./src
+
+# Default command
+CMD ["./gradlew", "test"]

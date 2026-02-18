@@ -15,3 +15,9 @@ build/
 
 # Documentation (local only)
 docs/
+
+# Test artifacts
+test-screenshots/
+
+# Docker volumes
+ollama-data/

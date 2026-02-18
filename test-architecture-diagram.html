@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture Diagram Test - Mermaid 11.12.2</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #ff3670;
+            padding-bottom: 10px;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            border-left: 4px solid #2196F3;
+        }
+        .success {
+            background: #e8f5e9;
+            border-left-color: #4CAF50;
+        }
+        #diagram {
+            margin: 20px 0;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 4px;
+            min-height: 400px;
+        }
+        .version {
+            font-family: monospace;
+            font-weight: bold;
+            color: #ff3670;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Mermaid Architecture Diagram Test</h1>
+        
+        <div class="info">
+            <strong>Test Purpose:</strong> Verify Mermaid <span class="version">11.12.2</span> can render architecture diagrams with all available syntax features.
+        </div>
+
+        <div class="info success" id="status" style="display:none;">
+            ✅ <strong>Success!</strong> Architecture diagram rendered successfully with Mermaid <span class="version">11.12.2</span>
+        </div>
+
+        <div id="diagram">
+            <pre class="mermaid">
+architecture-beta
+    group frontend(laptop)[Frontend Layer]
+        service webapp(globe)[Web App] in frontend
+        service mobile(phone)[Mobile App] in frontend
+    
+    group api_gateway(cloud)[API Gateway Layer]
+        service gateway(server)[API Gateway] in api_gateway
+        service auth(lock)[Authentication] in api_gateway
+        service cache(disk)[Cache Layer] in api_gateway
+    
+    group backend(server)[Backend Services]
+        service user_service(database)[User Service] in backend
+        service order_service(database)[Order Service] in backend
+        service payment_service(database)[Payment Service] in backend
+    
+    group storage(disk)[Storage Layer]
+        service main_db(database)[Main Database] in storage
+        service file_storage(disk)[File Storage] in storage
+        service message_queue(server)[Message Queue] in storage
+    
+    group external(cloud)[External Services]
+        service email(internet)[Email Service] in external
+        service analytics(internet)[Analytics] in external
+    
+    webapp:R --> L:gateway
+    mobile:R --> L:gateway
+    
+    gateway:B --> T:auth
+    gateway:R --> L:cache
+    
+    gateway:B --> T:user_service
+    gateway:B --> T:order_service
+    gateway:B --> T:payment_service
+    
+    user_service:R --> L:main_db
+    order_service:R --> L:main_db
+    payment_service:R --> L:main_db
+    
+    user_service:B --> T:file_storage
+    order_service:B --> T:message_queue
+    
+    payment_service:R --> L:email
+    order_service:R --> L:analytics
+            </pre>
+        </div>
+
+        <div class="info">
+            <strong>Features Demonstrated:</strong>
+            <ul>
+                <li>✓ Groups with icons (laptop, cloud, server, disk)</li>
+                <li>✓ Services with various icons (globe, phone, server, lock, database, internet)</li>
+                <li>✓ Edge connections with directional syntax (T, B, L, R)</li>
+                <li>✓ Layered architecture (Frontend, Gateway, Backend, Storage, External)</li>
+                <li>✓ Complex relationships between services</li>
+            </ul>
+        </div>
+    </div>
+
+    <script type="module">
+        import mermaid from './src/main/resources/mermaid/mermaid.min.js';
+        
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose'
+        });
+
+        // Show success message after rendering
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('status').style.display = 'block';
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
