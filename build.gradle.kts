@@ -1,5 +1,6 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import java.net.URL
 
 plugins {
     id("java")
@@ -74,8 +75,113 @@ intellijPlatform {
     }
 }
 
+// Mermaid.js dependency configuration
+val mermaidVersion = "11.12.2"
+val mermaidResourcesDir = "src/main/resources/mermaid"
+val mermaidTargetFile = file("$mermaidResourcesDir/mermaid.min.js")
+
+/**
+ * Task to download Mermaid.js 
+ * Tries multiple sources: npm, CDN, or manual download
+ */
+tasks.register("downloadMermaid") {
+    description = "Downloads Mermaid.js ${mermaidVersion}"
+    group = "build setup"
+    
+    inputs.property("mermaidVersion", mermaidVersion)
+    outputs.file(mermaidTargetFile)
+    
+    // Skip if file already exists and is not empty
+    onlyIf { !mermaidTargetFile.exists() || mermaidTargetFile.length() == 0L }
+    
+    doLast {
+        val targetDir = file(mermaidResourcesDir)
+        if (!targetDir.exists()) {
+            targetDir.mkdirs()
+        }
+        
+        println("Downloading Mermaid.js ${mermaidVersion}...")
+        
+        val tempDir = file("${buildDir}/tmp/mermaid-download")
+        tempDir.mkdirs()
+        
+        try {
+            // Try using npm to download (most reliable in restricted environments)
+            println("Using npm to download Mermaid.js...")
+            
+            exec {
+                workingDir = tempDir
+                commandLine("npm", "install", "--no-save", "mermaid@${mermaidVersion}")
+            }
+            
+            val npmFile = file("${tempDir}/node_modules/mermaid/dist/mermaid.min.js")
+            if (npmFile.exists()) {
+                npmFile.copyTo(mermaidTargetFile, overwrite = true)
+                val fileSizeMB = mermaidTargetFile.length() / (1024.0 * 1024.0)
+                println("✓ Successfully downloaded Mermaid.js ${mermaidVersion} (%.2f MB)".format(fileSizeMB))
+                println("  Saved to: ${mermaidTargetFile.absolutePath}")
+            } else {
+                throw Exception("mermaid.min.js not found in npm package")
+            }
+            
+        } catch (npmError: Exception) {
+            println("⚠ npm download failed: ${npmError.message}")
+            
+            // Fallback: Try CDN download
+            try {
+                println("Trying CDN download...")
+                val cdnUrl = "https://cdn.jsdelivr.net/npm/mermaid@${mermaidVersion}/dist/mermaid.min.js"
+                
+                URL(cdnUrl).openStream().use { input ->
+                    mermaidTargetFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                
+                val fileSizeMB = mermaidTargetFile.length() / (1024.0 * 1024.0)
+                println("✓ Successfully downloaded from CDN (%.2f MB)".format(fileSizeMB))
+                
+            } catch (cdnError: Exception) {
+                throw Exception("""
+                    Failed to download Mermaid.js from all sources:
+                    - npm: ${npmError.message}
+                    - CDN: ${cdnError.message}
+                    
+                    Manual download:
+                    curl -L -o ${mermaidTargetFile.absolutePath} \
+                      https://cdn.jsdelivr.net/npm/mermaid@${mermaidVersion}/dist/mermaid.min.js
+                """.trimIndent())
+            }
+        } finally {
+            // Clean up temp directory
+            tempDir.deleteRecursively()
+        }
+    }
+}
+
 tasks {
+    // Ensure Mermaid is downloaded before processing resources
+    processResources {
+        dependsOn("downloadMermaid")
+    }
+    
+    // Also ensure it's available for tests
+    processTestResources {
+        dependsOn("downloadMermaid")
+    }
+    
     test {
         // Using JUnit 4 with IntelliJ Platform test framework
+        dependsOn("downloadMermaid")
+    }
+    
+    // Clean task should also remove downloaded Mermaid
+    clean {
+        doLast {
+            if (mermaidTargetFile.exists()) {
+                mermaidTargetFile.delete()
+                println("Removed downloaded Mermaid.js")
+            }
+        }
     }
 }

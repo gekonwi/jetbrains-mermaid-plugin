@@ -7,13 +7,24 @@ This PR upgrades the Mermaid library from an older version to **11.12.2** and ad
 ## Changes Made
 
 ### 1. Mermaid Library Upgrade
-- **File Updated**: `src/main/resources/mermaid/mermaid.min.js`
+- **File Updated**: `src/main/resources/mermaid/mermaid.min.js` (now downloaded at build time)
 - **Old Version**: Previous Mermaid version (older than 11.x)
 - **New Version**: 11.12.2
 - **Size**: ~2.7 MB (2811 lines)
-- **Source**: Downloaded from npm package `mermaid@11.12.2`
+- **Source**: Automatically downloaded from jsDelivr CDN or npm registry
+- **Build Integration**: Gradle task `downloadMermaid` runs before `processResources`
 
-### 2. Test Data
+### 2. Dependency Management
+- **No Longer in Git**: The large `mermaid.min.js` file is not stored in version control
+- **Build-Time Download**: Automatically downloaded during build via Gradle task
+- **Version Pinning**: Version is configured in `build.gradle.kts` as `mermaidVersion = "11.12.2"`
+- **Benefits**:
+  - Reduced repository size
+  - Clearer version management
+  - Standard dependency management practices
+  - Automatic download with fallback sources
+
+### 3. Test Data
 - **File Created**: `src/test/resources/testdata/architecture-diagram.md`
 - **Content**: Comprehensive Markdown file with embedded Mermaid architecture diagram
 - **Features Demonstrated**:
@@ -23,7 +34,7 @@ This PR upgrades the Mermaid library from an older version to **11.12.2** and ad
   - Layered architecture pattern
   - Complex service relationships
 
-### 3. Integration Test
+### 4. Integration Test
 - **File Created**: `src/test/kotlin/com/nereid/integration/ArchitectureDiagramRenderingTest.kt`
 - **Test Coverage**:
   - Loads the test data Markdown file
@@ -33,7 +44,7 @@ This PR upgrades the Mermaid library from an older version to **11.12.2** and ad
   - Validates the rendering (with optional AI validation)
   - Handles headless environments gracefully
 
-### 4. Manual Testing Aid
+### 5. Manual Testing Aid
 - **File Created**: `test-architecture-diagram.html`
 - **Purpose**: Standalone HTML file for manual verification of the architecture diagram rendering
 - **Usage**: Open in a browser to visually verify the Mermaid 11.12.2 rendering
@@ -129,6 +140,33 @@ The AI validation:
    - Whether structure matches expected architecture pattern
 
 See [TESTING.md](TESTING.md) for complete documentation.
+
+## Upgrading Mermaid.js in the Future
+
+To upgrade to a newer version of Mermaid.js:
+
+1. **Update the version** in `build.gradle.kts`:
+   ```kotlin
+   val mermaidVersion = "11.13.0"  // or whatever new version
+   ```
+
+2. **Download the new version**:
+   ```bash
+   ./gradlew clean downloadMermaid
+   ```
+
+3. **Test the upgrade**:
+   ```bash
+   ./gradlew test
+   ```
+
+4. **Commit only the version change**:
+   ```bash
+   git add build.gradle.kts
+   git commit -m "Upgrade Mermaid to version 11.13.0"
+   ```
+
+The `mermaid.min.js` file itself is **not committed** to Git - it's automatically downloaded during the build process.
 
 ## Architecture Diagram Features Tested
 

@@ -21,3 +21,6 @@ test-screenshots/
 
 # Docker volumes
 ollama-data/
+
+# Downloaded dependencies (built at compile time)
+src/main/resources/mermaid/mermaid.min.js
