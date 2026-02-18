@@ -17,11 +17,14 @@ This PR upgrades the Mermaid library from an older version to **11.12.2** and ad
 ### 2. Dependency Management
 - **No Longer in Git**: The large `mermaid.min.js` file is not stored in version control
 - **Build-Time Download**: Automatically downloaded during build via Gradle task
+- **Download Location**: `build/downloaded-resources/mermaid/` (following Gradle best practices)
+- **Runtime Location**: Copied to `build/resources/main/mermaid/` during `processResources`
 - **Version Pinning**: Version is configured in `build.gradle.kts` as `mermaidVersion = "11.12.2"`
 - **Benefits**:
   - Reduced repository size
   - Clearer version management
   - Standard dependency management practices
+  - Proper separation of source vs build artifacts
   - Automatic download with fallback sources
 
 ### 3. Test Data

@@ -77,27 +77,28 @@ intellijPlatform {
 
 // Mermaid.js dependency configuration
 val mermaidVersion = "11.12.2"
+val mermaidDownloadDir = layout.buildDirectory.dir("downloaded-resources/mermaid").get().asFile
+val mermaidDownloadedFile = file("${mermaidDownloadDir}/mermaid.min.js")
 val mermaidResourcesDir = "src/main/resources/mermaid"
-val mermaidTargetFile = file("$mermaidResourcesDir/mermaid.min.js")
 
 /**
  * Task to download Mermaid.js 
- * Tries multiple sources: npm, CDN, or manual download
+ * Downloads to build/downloaded-resources instead of src/main/resources
+ * Following Gradle best practices for build-time dependencies
  */
 tasks.register("downloadMermaid") {
     description = "Downloads Mermaid.js ${mermaidVersion}"
     group = "build setup"
     
     inputs.property("mermaidVersion", mermaidVersion)
-    outputs.file(mermaidTargetFile)
+    outputs.file(mermaidDownloadedFile)
     
     // Skip if file already exists and is not empty
-    onlyIf { !mermaidTargetFile.exists() || mermaidTargetFile.length() == 0L }
+    onlyIf { !mermaidDownloadedFile.exists() || mermaidDownloadedFile.length() == 0L }
     
     doLast {
-        val targetDir = file(mermaidResourcesDir)
-        if (!targetDir.exists()) {
-            targetDir.mkdirs()
+        if (!mermaidDownloadDir.exists()) {
+            mermaidDownloadDir.mkdirs()
         }
         
         println("Downloading Mermaid.js ${mermaidVersion}...")
@@ -116,10 +117,10 @@ tasks.register("downloadMermaid") {
             
             val npmFile = file("${tempDir}/node_modules/mermaid/dist/mermaid.min.js")
             if (npmFile.exists()) {
-                npmFile.copyTo(mermaidTargetFile, overwrite = true)
-                val fileSizeMB = mermaidTargetFile.length() / (1024.0 * 1024.0)
+                npmFile.copyTo(mermaidDownloadedFile, overwrite = true)
+                val fileSizeMB = mermaidDownloadedFile.length() / (1024.0 * 1024.0)
                 println("✓ Successfully downloaded Mermaid.js ${mermaidVersion} (%.2f MB)".format(fileSizeMB))
-                println("  Saved to: ${mermaidTargetFile.absolutePath}")
+                println("  Saved to: ${mermaidDownloadedFile.absolutePath}")
             } else {
                 throw Exception("mermaid.min.js not found in npm package")
             }
@@ -133,12 +134,12 @@ tasks.register("downloadMermaid") {
                 val cdnUrl = "https://cdn.jsdelivr.net/npm/mermaid@${mermaidVersion}/dist/mermaid.min.js"
                 
                 URL(cdnUrl).openStream().use { input ->
-                    mermaidTargetFile.outputStream().use { output ->
+                    mermaidDownloadedFile.outputStream().use { output ->
                         input.copyTo(output)
                     }
                 }
                 
-                val fileSizeMB = mermaidTargetFile.length() / (1024.0 * 1024.0)
+                val fileSizeMB = mermaidDownloadedFile.length() / (1024.0 * 1024.0)
                 println("✓ Successfully downloaded from CDN (%.2f MB)".format(fileSizeMB))
                 
             } catch (cdnError: Exception) {
@@ -148,7 +149,7 @@ tasks.register("downloadMermaid") {
                     - CDN: ${cdnError.message}
                     
                     Manual download:
-                    curl -L -o ${mermaidTargetFile.absolutePath} \
+                    curl -L -o ${mermaidDownloadedFile.absolutePath} \
                       https://cdn.jsdelivr.net/npm/mermaid@${mermaidVersion}/dist/mermaid.min.js
                 """.trimIndent())
             }
@@ -160,9 +161,15 @@ tasks.register("downloadMermaid") {
 }
 
 tasks {
-    // Ensure Mermaid is downloaded before processing resources
+    // Copy downloaded Mermaid.js to resources during processResources
     processResources {
         dependsOn("downloadMermaid")
+        
+        // Copy the downloaded file to the resources output
+        from(mermaidDownloadDir) {
+            into("mermaid")
+            include("mermaid.min.js")
+        }
     }
     
     // Also ensure it's available for tests
@@ -173,14 +180,17 @@ tasks {
     test {
         // Using JUnit 4 with IntelliJ Platform test framework
         dependsOn("downloadMermaid")
+        
+        // Make the downloaded file available during tests
+        systemProperty("mermaid.file.path", mermaidDownloadedFile.absolutePath)
     }
     
-    // Clean task should also remove downloaded Mermaid
+    // Clean task should remove downloaded files
     clean {
         doLast {
-            if (mermaidTargetFile.exists()) {
-                mermaidTargetFile.delete()
-                println("Removed downloaded Mermaid.js")
+            if (mermaidDownloadDir.exists()) {
+                mermaidDownloadDir.deleteRecursively()
+                println("Removed downloaded Mermaid.js from build directory")
             }
         }
     }
