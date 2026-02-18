@@ -11,14 +11,17 @@ This PR successfully implements a complete upgrade to Mermaid 11.12.2 with compr
 - **New Features**: Enables architecture diagram support (new in Mermaid 11.x)
 - **Compatibility**: Non-breaking change - all existing diagrams continue to work
 
-### ✅ 2. Build-Time Dependency Management
+### ✅ 2. Build-Time Dependency Management (Following Gradle Best Practices)
 - **No Longer in Git**: Removed 2.7 MB `mermaid.min.js` from version control
 - **Automatic Download**: Gradle task downloads from npm or CDN at build time
+- **Proper Location**: Downloads to `build/downloaded-resources/` (not `src/`)
+- **Resource Processing**: Copied to `build/resources/main/` during `processResources`
 - **Version Pinning**: Configured in `build.gradle.kts`
 - **Benefits**:
   - Reduced repository size
   - Clearer version management
-  - Standard dependency practices
+  - Standard Gradle conventions (src/ = source, build/ = artifacts)
+  - Proper separation of concerns
 
 ### ✅ 3. Comprehensive Test Infrastructure
 - **Test Data**: Architecture diagram with all available syntax features
@@ -46,9 +49,10 @@ This PR successfully implements a complete upgrade to Mermaid 11.12.2 with compr
 ## Files Changed
 
 ### Core Changes
-1. `build.gradle.kts` - Added `downloadMermaid` task and dependency management
-2. `.gitignore` - Excluded downloaded `mermaid.min.js`
-3. `src/main/resources/mermaid/mermaid.min.js` - Removed from Git (now downloaded)
+1. `build.gradle.kts` - Added `downloadMermaid` task with proper build/ directory usage
+2. `.gitignore` - Build directory already excluded (no specific mermaid.min.js exclusion needed)
+3. `src/main/resources/mermaid/` - Contains only source-controlled files (HTML, CSS, JS)
+4. `build/downloaded-resources/mermaid/` - Contains downloaded mermaid.min.js (gitignored)
 
 ### Test Infrastructure
 4. `src/test/kotlin/com/nereid/integration/ArchitectureDiagramRenderingTest.kt` - New integration test
