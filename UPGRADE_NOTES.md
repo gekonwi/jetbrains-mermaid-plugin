@@ -52,7 +52,7 @@ architecture-beta
 
 ### Icons Available
 - **Groups**: cloud, server, laptop, disk
-- **Services**: globe, phone, server, lock, database, disk, internet, gateway
+- **Services**: globe, phone, server, lock, database, disk, internet
 
 ### Edge Directions
 - `T` - Top

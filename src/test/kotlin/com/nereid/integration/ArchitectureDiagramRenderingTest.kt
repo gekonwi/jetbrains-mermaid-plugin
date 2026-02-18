@@ -28,6 +28,11 @@ class ArchitectureDiagramRenderingTest : BasePlatformTestCase() {
 
     private val testDataPath = "src/test/resources/testdata/architecture-diagram.md"
     private val screenshotOutputDir = "build/test-screenshots"
+    
+    companion object {
+        private const val SCREENSHOT_WIDTH = 1024
+        private const val SCREENSHOT_HEIGHT = 768
+    }
 
     override fun setUp() {
         super.setUp()
@@ -111,7 +116,7 @@ class ArchitectureDiagramRenderingTest : BasePlatformTestCase() {
      * Extracts the mermaid diagram code block from markdown content
      */
     private fun extractMermaidDiagram(markdown: String): String? {
-        val regex = "```mermaid\\s*\\n(.*?)\\n```".toRegex(RegexOption.DOT_MATCHES_ALL)
+        val regex = "```mermaid\\s*\\n(.*?)\\n```\\s*".toRegex(RegexOption.DOT_MATCHES_ALL)
         val match = regex.find(markdown)
         return match?.groupValues?.get(1)?.trim()
     }
@@ -123,7 +128,7 @@ class ArchitectureDiagramRenderingTest : BasePlatformTestCase() {
     private fun captureScreenshot(): BufferedImage? {
         return try {
             val robot = Robot()
-            val screenRect = Rectangle(0, 0, 1024, 768)
+            val screenRect = Rectangle(0, 0, SCREENSHOT_WIDTH, SCREENSHOT_HEIGHT)
             robot.createScreenCapture(screenRect)
         } catch (e: Exception) {
             println("Could not capture screenshot: ${e.message}")
