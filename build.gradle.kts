@@ -102,7 +102,7 @@ tasks.register("downloadMermaid") {
         
         println("Downloading Mermaid.js ${mermaidVersion}...")
         
-        val tempDir = file("${buildDir}/tmp/mermaid-download")
+        val tempDir = layout.buildDirectory.dir("tmp/mermaid-download").get().asFile
         tempDir.mkdirs()
         
         try {

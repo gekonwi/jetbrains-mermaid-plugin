@@ -47,11 +47,14 @@ done
 # Pull the llava model for image analysis
 echo ""
 echo "📦 Pulling llava model (this may take a few minutes on first run)..."
-curl -X POST http://localhost:11434/api/pull -d '{"name":"llava"}' &
-PULL_PID=$!
+echo "    Progress will be shown below..."
 
-# Wait for pull to complete
-wait $PULL_PID
+if curl -X POST http://localhost:11434/api/pull -d '{"name":"llava"}' 2>&1 | tee /tmp/ollama-pull.log; then
+    echo "✓ Model pull completed successfully"
+else
+    echo "❌ Model pull failed. Check logs above."
+    exit 1
+fi
 
 echo ""
 echo "✅ Ollama is ready with llava model!"

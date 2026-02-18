@@ -47,7 +47,11 @@ TEST_EXIT_CODE=$?
 # Copy test screenshots from the volume
 echo ""
 echo "📸 Extracting test screenshots..."
-docker cp mermaid-test-runner:/workspace/build/test-screenshots ./build/test-screenshots 2>/dev/null || echo "No screenshots to extract"
+if docker ps -a | grep -q mermaid-test-runner; then
+    docker cp mermaid-test-runner:/workspace/build/test-screenshots ./build/test-screenshots 2>&1 || echo "ℹ️  No screenshots to extract (container may not have created any)"
+else
+    echo "ℹ️  Test runner container not found, skipping screenshot extraction"
+fi
 
 # Clean up
 echo ""

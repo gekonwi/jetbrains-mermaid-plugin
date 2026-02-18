@@ -120,9 +120,10 @@ class ArchitectureDiagramRenderingTest : BasePlatformTestCase() {
 
     /**
      * Extracts the mermaid diagram code block from markdown content
+     * Handles various whitespace patterns
      */
     private fun extractMermaidDiagram(markdown: String): String? {
-        val regex = "```mermaid\\s*\\n(.*?)\\n```\\s*".toRegex(RegexOption.DOT_MATCHES_ALL)
+        val regex = "(?s)```mermaid\\s*\\n(.*?)\\n```".toRegex()
         val match = regex.find(markdown)
         return match?.groupValues?.get(1)?.trim()
     }
