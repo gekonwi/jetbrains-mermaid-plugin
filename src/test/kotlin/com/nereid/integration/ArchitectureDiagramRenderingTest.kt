@@ -14,6 +14,12 @@ import java.nio.file.Paths
 import javax.imageio.ImageIO
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.Base64
+import java.io.ByteArrayOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import org.json.JSONObject
+import org.json.JSONArray
 
 /**
  * Integration test for rendering architecture diagrams in Mermaid 11.12.2
@@ -185,17 +191,19 @@ class ArchitectureDiagramRenderingTest : BasePlatformTestCase() {
      */
     private fun checkLocalAIService(): Boolean {
         return try {
-            val process = ProcessBuilder(
-                "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
-                "http://localhost:11434/api/tags"
-            ).start()
+            val ollamaHost = System.getenv("OLLAMA_HOST") ?: "http://localhost:11434"
+            val url = URL("$ollamaHost/api/tags")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
             
-            process.waitFor(5, TimeUnit.SECONDS)
-            val exitCode = process.exitValue()
-            val output = process.inputStream.bufferedReader().readText()
+            val responseCode = connection.responseCode
+            connection.disconnect()
             
-            output.trim() == "200"
+            responseCode == 200
         } catch (e: Exception) {
+            println("Could not connect to Ollama: ${e.message}")
             false
         }
     }
@@ -203,18 +211,86 @@ class ArchitectureDiagramRenderingTest : BasePlatformTestCase() {
     /**
      * Performs AI-based validation of the screenshot
      * 
-     * This would send the screenshot and diagram source to a local AI service
-     * for validation that the rendered output matches the expected diagram.
+     * Uses Ollama's llava model to analyze the screenshot and validate
+     * that it matches the expected architecture diagram structure.
      */
     private fun performAIValidation(screenshot: BufferedImage, diagramSource: String): String {
-        // TODO: Implement actual AI validation using local service like Ollama
-        // For now, return a placeholder result
-        
-        // Expected behavior:
-        // 1. Convert screenshot to base64
-        // 2. Send to local AI with prompt asking to validate the architecture diagram
-        // 3. Parse AI response to determine if diagram was rendered correctly
-        
-        return "AI validation placeholder - local AI service integration pending"
+        try {
+            val ollamaHost = System.getenv("OLLAMA_HOST") ?: "http://localhost:11434"
+            
+            // Convert screenshot to base64
+            val base64Image = convertImageToBase64(screenshot)
+            
+            // Create the validation prompt
+            val prompt = """
+                Analyze this Mermaid architecture diagram screenshot.
+                
+                Expected diagram source:
+                $diagramSource
+                
+                Please verify:
+                1. Are there multiple groups/layers visible in the diagram?
+                2. Are there service boxes/nodes within the groups?
+                3. Are there connection lines/arrows between services?
+                4. Does the overall structure match a layered architecture pattern?
+                
+                Respond with a JSON object containing:
+                - "valid": true/false
+                - "groups_detected": number of groups/layers visible
+                - "services_detected": number of service nodes visible
+                - "connections_detected": number of connection lines visible
+                - "matches_expected": true/false
+                - "observations": any notable observations
+            """.trimIndent()
+            
+            // Call Ollama API
+            val url = URL("$ollamaHost/api/generate")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.connectTimeout = 30000
+            connection.readTimeout = 60000
+            
+            val requestBody = JSONObject().apply {
+                put("model", "llava")
+                put("prompt", prompt)
+                put("images", JSONArray().put(base64Image))
+                put("stream", false)
+            }
+            
+            connection.outputStream.use { os ->
+                os.write(requestBody.toString().toByteArray())
+            }
+            
+            val responseCode = connection.responseCode
+            if (responseCode != 200) {
+                return "AI validation failed: HTTP $responseCode"
+            }
+            
+            val response = connection.inputStream.bufferedReader().readText()
+            connection.disconnect()
+            
+            val jsonResponse = JSONObject(response)
+            val aiResponse = jsonResponse.optString("response", "No response")
+            
+            println("Ollama AI Analysis:")
+            println(aiResponse)
+            
+            return aiResponse
+            
+        } catch (e: Exception) {
+            return "AI validation error: ${e.message}"
+        }
+    }
+    
+    /**
+     * Converts a BufferedImage to base64 string
+     */
+    private fun convertImageToBase64(image: BufferedImage): String {
+        val outputStream = ByteArrayOutputStream()
+        ImageIO.write(image, "png", outputStream)
+        val imageBytes = outputStream.toByteArray()
+        return Base64.getEncoder().encodeToString(imageBytes)
     }
 }

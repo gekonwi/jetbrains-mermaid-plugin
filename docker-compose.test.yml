@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Ollama AI service for diagram validation
+  ollama:
+    image: ollama/ollama:latest
+    container_name: mermaid-test-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # Test runner environment
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: mermaid-test-runner
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - DISPLAY=${DISPLAY:-:99}
+      - GRADLE_OPTS=-Xmx2048m
+    volumes:
+      - .:/workspace
+      - gradle-cache:/root/.gradle
+      - test-screenshots:/workspace/build/test-screenshots
+    working_dir: /workspace
+    networks:
+      - test-network
+    command: >
+      bash -c "
+        echo 'Waiting for Ollama to be ready...' &&
+        sleep 5 &&
+        echo 'Pulling llava model for image analysis...' &&
+        curl -X POST http://ollama:11434/api/pull -d '{\"name\":\"llava\"}' &&
+        sleep 10 &&
+        echo 'Running integration tests...' &&
+        ./gradlew test --tests 'com.nereid.integration.ArchitectureDiagramRenderingTest' --info
+      "
+
+volumes:
+  ollama-data:
+    driver: local
+  gradle-cache:
+    driver: local
+  test-screenshots:
+    driver: local
+
+networks:
+  test-network:
+    driver: bridge
