@@ -77,6 +77,24 @@ architecture-beta
 ./gradlew test --tests "com.nereid.integration.ArchitectureDiagramRenderingTest"
 ```
 
+### Running Tests with Containerized AI Validation
+
+The complete test infrastructure with Ollama AI validation can be run using Docker Compose:
+
+```bash
+./run-containerized-tests.sh
+```
+
+This will:
+- Start Ollama in a Docker container
+- Pull the llava vision model for image analysis
+- Run the integration tests
+- Validate screenshots using AI
+- Extract test artifacts
+- Clean up containers
+
+For more details, see [TESTING.md](TESTING.md).
+
 **Note**: The test includes graceful handling for:
 - Headless environments (skips JCEF rendering)
 - Missing local AI services (logs warning, doesn't fail)
@@ -87,16 +105,30 @@ architecture-beta
 2. Verify the architecture diagram renders correctly
 3. Check that all groups, services, and connections are visible
 
-### AI Validation (Optional)
-The integration test includes support for AI-based validation using a local AI service (e.g., Ollama):
+### AI Validation with Ollama
 
-1. Run a local AI service:
-   ```bash
-   docker run -d -p 11434:11434 ollama/ollama
-   ```
+The integration test now includes **full AI-based validation** using Ollama's llava vision model:
 
-2. The test will automatically detect and use the service if available
-3. If not available, the test continues without AI validation
+**Quick Start:**
+```bash
+# Option 1: Containerized (recommended)
+./run-containerized-tests.sh
+
+# Option 2: Local Ollama
+./start-ollama.sh
+./gradlew test --tests "com.nereid.integration.ArchitectureDiagramRenderingTest"
+```
+
+The AI validation:
+1. Captures a screenshot of the rendered diagram
+2. Sends it to Ollama with a structured prompt
+3. Receives analysis confirming:
+   - Number of groups/layers detected
+   - Number of service nodes visible
+   - Number of connections/edges found
+   - Whether structure matches expected architecture pattern
+
+See [TESTING.md](TESTING.md) for complete documentation.
 
 ## Architecture Diagram Features Tested
 
@@ -129,7 +161,8 @@ This is a **non-breaking change**. All existing Mermaid diagrams will continue t
 ## Future Enhancements
 
 Potential improvements for future PRs:
-1. Implement full AI validation using Ollama vision models
+1. ✅ ~~Implement full AI validation using Ollama vision models~~ (Completed)
 2. Add more test cases for other Mermaid 11.x diagram types
 3. Performance benchmarking for large diagrams
 4. Screenshot comparison testing (visual regression)
+5. Support for multiple AI models (GPT-4V, Claude, etc.)
